@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="128" fill="#DB2777"/>
+  <g transform="translate(256,256)">
+    <!-- Heart shape -->
+    <path d="M0 60 C0 60, -90 -40, -90 -80 C-90 -120, -50 -140, -20 -120 C0 -105, 0 -80, 0 -80 C0 -80, 0 -105, 20 -120 C50 -140, 90 -120, 90 -80 C90 -40, 0 60, 0 60Z" fill="white" opacity="0.95"/>
+    <!-- Letter R -->
+    <text x="0" y="20" text-anchor="middle" font-family="Georgia, serif" font-size="100" font-weight="bold" fill="#DB2777">R</text>
+  </g>
+</svg>
