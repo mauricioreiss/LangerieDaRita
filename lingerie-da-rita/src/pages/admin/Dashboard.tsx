@@ -71,21 +71,23 @@ export function Dashboard() {
       const totalExpensesMonth = expenses?.reduce((sum, e) => sum + e.amount, 0) || 0
 
       // Custo dos produtos vendidos no mês
-      const { data: saleItems } = await supabase
-        .from('sale_items')
-        .select('cost_price, quantity, sale_id')
-
-      // Get sales from this month
       const { data: monthSales } = await supabase
         .from('sales')
         .select('id')
         .gte('created_at', startOfMonth)
         .lte('created_at', endOfMonth)
 
-      const monthSaleIds = new Set(monthSales?.map(s => s.id) || [])
-      const totalCostMonth = saleItems
-        ?.filter(si => monthSaleIds.has(si.sale_id))
-        .reduce((sum, si) => sum + si.cost_price * si.quantity, 0) || 0
+      let totalCostMonth = 0
+      const monthSaleIds = monthSales?.map(s => s.id) || []
+      if (monthSaleIds.length > 0) {
+        const { data: monthSaleItems } = await supabase
+          .from('sale_items')
+          .select('cost_price, quantity')
+          .in('sale_id', monthSaleIds)
+
+        totalCostMonth = monthSaleItems
+          ?.reduce((sum, si) => sum + si.cost_price * si.quantity, 0) || 0
+      }
 
       const profitMonth = totalReceivedMonth - totalCostMonth - totalExpensesMonth
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, Package, Edit2, ImageOff, Archive, RotateCcw } from 'lucide-react'
+import { Plus, Search, Package, Edit2, ImageOff, Archive, RotateCcw, AlertTriangle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/formatters'
 import { Button } from '@/components/ui/Button'
@@ -61,7 +61,7 @@ export function Stock() {
   async function handleRestore(product: Product) {
     const { error } = await supabase
       .from('products')
-      .update({ is_archived: false })
+      .update({ is_archived: false, is_available: product.stock_quantity > 0 })
       .eq('id', product.id)
 
     if (error) {
@@ -176,11 +176,21 @@ export function Stock() {
                   <div className="flex items-center justify-between mt-1">
                     <div className="flex items-center gap-1">
                       <span className={`inline-block w-2 h-2 rounded-full ${
-                        product.stock_quantity > 0 ? 'bg-success' : 'bg-danger'
+                        product.stock_quantity === 0
+                          ? 'bg-danger'
+                          : product.min_stock_alert > 0 && product.stock_quantity <= product.min_stock_alert
+                            ? 'bg-warning'
+                            : 'bg-success'
                       }`} />
                       <span className="text-xs text-text-light">
-                        {product.stock_quantity > 0 ? `${product.stock_quantity} un.` : 'Esgotado'}
+                        {product.stock_quantity === 0 ? 'Esgotado' : `${product.stock_quantity} un.`}
                       </span>
+                      {product.min_stock_alert > 0 && product.stock_quantity > 0 && product.stock_quantity <= product.min_stock_alert && (
+                        <span className="flex items-center gap-0.5 text-xs text-warning font-medium ml-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          Baixo
+                        </span>
+                      )}
                     </div>
                     <div className="flex gap-1">
                       {showArchived ? (

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, Save, Search, Package, Plus, ImageOff, CheckCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -27,6 +27,7 @@ export function ProductForm() {
   const [mode, setMode] = useState<Mode>(isEditing ? 'edit' : 'search')
   const [searchCode, setSearchCode] = useState('')
   const [isSearching, setIsSearching] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [foundProduct, setFoundProduct] = useState<Product | null>(null)
   const [restockQuantity, setRestockQuantity] = useState('')
   const [restockResult, setRestockResult] = useState<RestockResult | null>(null)
@@ -94,6 +95,24 @@ export function ProductForm() {
       setMode('new')
     }
   }
+
+  // Auto-search with debounce when typing code (min 2 chars)
+  const searchCodeRef = useRef(searchCode)
+  searchCodeRef.current = searchCode
+  useEffect(() => {
+    if (mode !== 'search' || !searchCode.trim() || searchCode.trim().length < 2) return
+
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      if (searchCodeRef.current.trim().length >= 2) {
+        handleSearchCode()
+      }
+    }, 500)
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [searchCode, mode])
 
   async function handleRestock() {
     if (!foundProduct || !restockQuantity) {

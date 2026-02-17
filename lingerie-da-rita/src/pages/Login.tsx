@@ -22,7 +22,11 @@ export function Login() {
     }
 
     setIsLoading(true)
-    const { error } = await signIn(username.trim().toLowerCase() + '@app.interno', password)
+    // Se ja tem @ e um email real, usa direto. Senao, adiciona @app.interno
+    const email = username.includes('@')
+      ? username.trim().toLowerCase()
+      : username.trim().toLowerCase() + '@app.interno'
+    const { error } = await signIn(email, password)
     setIsLoading(false)
 
     if (error) {
@@ -53,7 +57,7 @@ export function Login() {
           <Input
             label="Usuário"
             type="text"
-            placeholder="Ex: RitaLingerie"
+            placeholder="Seu email ou usuario"
             value={username}
             onChange={e => setUsername(e.target.value)}
             autoComplete="username"

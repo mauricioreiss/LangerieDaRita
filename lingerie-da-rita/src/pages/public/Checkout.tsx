@@ -1,10 +1,11 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Send, Copy, CheckCircle, QrCode, Calendar } from 'lucide-react'
+import { ArrowLeft, Send, Copy, CheckCircle, QrCode, Calendar, Loader2 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { addMonths, differenceInDays } from 'date-fns'
 import { formatCurrency } from '@/lib/formatters'
 import { generatePixPayload } from '@/lib/pix'
+import { supabase } from '@/lib/supabase'
 import { useCartStore } from '@/store/cartStore'
 import { useSettingsStore } from '@/store/settingsStore'
 import { Button } from '@/components/ui/Button'
@@ -31,13 +32,18 @@ export function Checkout() {
   const [name, setName] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<'pix' | 'installment'>('pix')
   const [installmentCount, setInstallmentCount] = useState('1')
+  const [phone, setPhone] = useState('')
   const [pixCopied, setPixCopied] = useState(false)
   const [payloadCopied, setPayloadCopied] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
 
   const total = getTotal()
-  const purchaseDate = new Date()
-  const maxDate = new Date(purchaseDate)
-  maxDate.setDate(maxDate.getDate() + 90)
+  const purchaseDate = useMemo(() => new Date(), [])
+  const maxDate = useMemo(() => {
+    const d = new Date(purchaseDate)
+    d.setDate(d.getDate() + 90)
+    return d
+  }, [purchaseDate])
 
   // Custom installment dates
   const [customDates, setCustomDates] = useState<Record<number, string>>({})
@@ -55,8 +61,11 @@ export function Checkout() {
   }
 
   function handleDateChange(index: number, dateStr: string) {
-    const selectedDate = new Date(dateStr)
-    const daysDiff = differenceInDays(selectedDate, purchaseDate)
+    // Parse as local date to avoid timezone offset issues
+    const [y, m, d] = dateStr.split('-').map(Number)
+    const selectedDate = new Date(y, m - 1, d)
+    const today = new Date(purchaseDate.getFullYear(), purchaseDate.getMonth(), purchaseDate.getDate())
+    const daysDiff = differenceInDays(selectedDate, today)
 
     if (daysDiff > 90) {
       showToast('O prazo máximo é 90 dias a partir da data da compra', 'warning')
@@ -123,18 +132,69 @@ export function Checkout() {
     return message
   }
 
-  function handleSendWhatsApp() {
+  async function handleSendWhatsApp() {
     if (!name.trim()) {
       showToast('Digite seu nome', 'warning')
       return
     }
+    if (!phone.trim()) {
+      showToast('Digite seu telefone', 'warning')
+      return
+    }
 
+    setIsSaving(true)
+
+    try {
+      // Register sale in the database
+      const count = paymentMethod === 'installment' ? parseInt(installmentCount) : 1
+      const installmentAmount = total / count
+      const now = new Date()
+
+      const orderItems = items.map(item => ({
+        product_id: item.product.id,
+        quantity: item.quantity,
+      }))
+
+      const orderInstallments = Array.from({ length: count }, (_, i) => ({
+        installment_number: i + 1,
+        amount: Math.round(installmentAmount * 100) / 100,
+        due_date: paymentMethod === 'pix' ? now.toISOString().split('T')[0] : getInstallmentDate(i),
+      }))
+
+      const paymentMethodValue = paymentMethod === 'pix'
+        ? 'pix'
+        : `installment_${installmentCount}x`
+
+      const { error } = await supabase.rpc('create_public_order', {
+        p_customer_name: name.trim(),
+        p_customer_phone: phone.trim(),
+        p_items: orderItems,
+        p_payment_method: paymentMethodValue,
+        p_installments: orderInstallments,
+        p_total_amount: total,
+      })
+
+      if (error) {
+        console.error('Order error:', error)
+        showToast('Erro ao registrar pedido. Tente novamente.', 'error')
+        setIsSaving(false)
+        return
+      }
+    } catch (err) {
+      console.error('Order exception:', err)
+      showToast('Erro ao registrar pedido. Tente novamente.', 'error')
+      setIsSaving(false)
+      return
+    }
+
+    // Send to WhatsApp
     const message = generateOrderMessage()
     const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`
 
     window.open(url, '_blank')
-    showToast('Pedido enviado! Aguarde a confirmação da Rita', 'success')
+    showToast('Pedido registrado e enviado!', 'success')
     clearCart()
+    setIsSaving(false)
     navigate('/')
   }
 
@@ -174,14 +234,22 @@ export function Checkout() {
         </div>
       </Card>
 
-      {/* Customer Name */}
+      {/* Customer Info */}
       <Card>
-        <Input
-          label="Seu Nome *"
-          placeholder="Como você se chama?"
-          value={name}
-          onChange={e => setName(e.target.value)}
-        />
+        <div className="space-y-3">
+          <Input
+            label="Seu Nome *"
+            placeholder="Como você se chama?"
+            value={name}
+            onChange={e => setName(e.target.value)}
+          />
+          <Input
+            label="Seu Telefone (WhatsApp) *"
+            placeholder="(11) 99999-9999"
+            value={phone}
+            onChange={e => setPhone(e.target.value)}
+          />
+        </div>
       </Card>
 
       {/* Payment Method */}
@@ -323,12 +391,12 @@ export function Checkout() {
       {/* Send to WhatsApp */}
       <Button
         onClick={handleSendWhatsApp}
-        icon={<Send className="w-5 h-5" />}
+        icon={isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
         className="w-full bg-[#25D366] hover:bg-[#1DA851] active:bg-[#128C3E]"
         size="lg"
-        disabled={!isOnline}
+        disabled={!isOnline || isSaving}
       >
-        Enviar Pedido no WhatsApp
+        {isSaving ? 'Registrando pedido...' : 'Enviar Pedido no WhatsApp'}
       </Button>
     </div>
   )

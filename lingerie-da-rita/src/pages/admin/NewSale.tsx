@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Save, UserPlus, Plus, Minus, Trash2, Calendar, AlertTriangle } from 'lucide-react'
 import { addMonths, differenceInDays } from 'date-fns'
 import { supabase } from '@/lib/supabase'
-import { formatCurrency, formatDateShort } from '@/lib/formatters'
+import { formatCurrency } from '@/lib/formatters'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
@@ -33,9 +33,12 @@ export function NewSale() {
   const [newCustomerPhone, setNewCustomerPhone] = useState('')
   const [customDueDates, setCustomDueDates] = useState<Record<number, string>>({})
 
-  const purchaseDate = new Date()
-  const maxDate = new Date(purchaseDate)
-  maxDate.setDate(maxDate.getDate() + 90)
+  const purchaseDate = useMemo(() => new Date(), [])
+  const maxDate = useMemo(() => {
+    const d = new Date(purchaseDate)
+    d.setDate(d.getDate() + 90)
+    return d
+  }, [purchaseDate])
 
   function getDefaultDueDate(index: number): string {
     return addMonths(purchaseDate, index).toISOString().split('T')[0]
@@ -46,8 +49,11 @@ export function NewSale() {
   }
 
   function handleDueDateChange(index: number, dateStr: string) {
-    const selected = new Date(dateStr)
-    const daysDiff = differenceInDays(selected, purchaseDate)
+    // Parse as local date to avoid timezone offset issues
+    const [y, m, d] = dateStr.split('-').map(Number)
+    const selected = new Date(y, m - 1, d)
+    const today = new Date(purchaseDate.getFullYear(), purchaseDate.getMonth(), purchaseDate.getDate())
+    const daysDiff = differenceInDays(selected, today)
     if (daysDiff > 90) {
       showToast('O prazo máximo é 90 dias a partir da data da compra', 'warning')
       return
@@ -173,7 +179,7 @@ export function NewSale() {
           .from('products')
           .update({
             stock_quantity: Math.max(0, item.product.stock_quantity - item.quantity),
-            is_available: item.product.stock_quantity - item.quantity > 0,
+            is_available: Math.max(0, item.product.stock_quantity - item.quantity) > 0,
           })
           .eq('id', item.product.id)
       }

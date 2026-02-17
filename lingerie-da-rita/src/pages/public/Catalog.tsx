@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Search, ShoppingBag, Plus, ImageOff, Filter } from 'lucide-react'
+import { Search, ShoppingBag, Plus, ImageOff } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/formatters'
 import { Input } from '@/components/ui/Input'
