@@ -1,73 +1,52 @@
-# React + TypeScript + Vite
+# Lingerie da Rita
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+E-commerce e sistema de gestao de vendas de lingerie, desenvolvido para uma amiga que vende lingerie de forma autonoma.
 
-Currently, two official plugins are available:
+## Sobre
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Uma PWA (Progressive Web App) completa que funciona como vitrine publica para clientes e painel administrativo para a vendedora. O objetivo e facilitar o dia a dia de quem vende lingerie: cadastrar produtos, registrar vendas, controlar parcelas e compartilhar o catalogo via WhatsApp.
 
-## React Compiler
+## Funcionalidades
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+**Vitrine Publica (clientes)**
+- Catalogo de produtos com busca e filtro por tamanho
+- Carrinho de compras persistente
+- Checkout com QR Code Pix e opcao de parcelamento
+- Envio do pedido via WhatsApp
 
-## Expanding the ESLint configuration
+**Painel Admin (vendedora)**
+- Dashboard com receita, despesas e lucro do mes
+- Cadastro e reposicao de estoque com busca por codigo
+- Registro de vendas com parcelamento customizavel
+- Controle financeiro com despesas por categoria
+- Relatorios de mais vendidos e sugestao de reposicao
+- Alerta de estoque baixo
+- Cobranca de parcelas via WhatsApp
+- Arquivar/restaurar produtos (soft delete)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Tech Stack
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **Frontend:** React 19 + TypeScript + Tailwind CSS v4
+- **Build:** Vite 7
+- **Backend:** Supabase (Auth + PostgreSQL + RLS)
+- **State:** Zustand
+- **Deploy:** Vercel
+- **Pagamento:** Pix via QR Code (padrao EMV/BR Code)
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Como rodar
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Crie um `.env` na raiz com:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```
+VITE_SUPABASE_URL=sua_url
+VITE_SUPABASE_ANON_KEY=sua_chave
+```
+
+## Banco de dados
+
+O arquivo `supabase/RESET_AND_CREATE.sql` contem o schema completo. Basta colar no SQL Editor do Supabase para criar todas as tabelas, policies e funcoes.
