@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Save, Search, Package, Plus, ImageOff, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Save, Search, Package, Plus, ImageOff, CheckCircle, Camera, Image, Loader2, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/formatters'
 import { Button } from '@/components/ui/Button'
@@ -33,6 +33,13 @@ export function ProductForm() {
   const [restockResult, setRestockResult] = useState<RestockResult | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
+  // Image upload
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+
   // Form state for new product / editing
   const [form, setForm] = useState({
     code: '',
@@ -49,6 +56,9 @@ export function ProductForm() {
   useEffect(() => {
     if (isEditing) {
       fetchProduct()
+    }
+    return () => {
+      if (imagePreview) URL.revokeObjectURL(imagePreview)
     }
   }, [id])
 
@@ -154,6 +164,55 @@ export function ProductForm() {
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
+  function handleImageSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Imagem muito grande (max 5MB)', 'warning')
+      return
+    }
+
+    setImageFile(file)
+    const url = URL.createObjectURL(file)
+    setImagePreview(url)
+  }
+
+  function handleRemoveImage() {
+    setImageFile(null)
+    if (imagePreview) URL.revokeObjectURL(imagePreview)
+    setImagePreview(null)
+    updateField('image_url', '')
+    if (cameraInputRef.current) cameraInputRef.current.value = ''
+    if (galleryInputRef.current) galleryInputRef.current.value = ''
+  }
+
+  async function uploadImage(): Promise<string | null> {
+    if (!imageFile) return form.image_url || null
+
+    setIsUploading(true)
+    const ext = imageFile.name.split('.').pop() || 'jpg'
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+
+    const { error } = await supabase.storage
+      .from('product-images')
+      .upload(fileName, imageFile, { cacheControl: '3600', upsert: false })
+
+    setIsUploading(false)
+
+    if (error) {
+      console.error('Upload error:', error)
+      showToast('Erro ao enviar foto. Verifique se o bucket "product-images" existe no Supabase.', 'error')
+      return null
+    }
+
+    const { data: urlData } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(fileName)
+
+    return urlData.publicUrl
+  }
+
   async function handleSubmitNew(e: React.FormEvent) {
     e.preventDefault()
 
@@ -164,6 +223,17 @@ export function ProductForm() {
 
     setIsLoading(true)
 
+    // Upload image if a new file was selected
+    let imageUrl = form.image_url || null
+    if (imageFile) {
+      const uploaded = await uploadImage()
+      if (uploaded === null && imageFile) {
+        setIsLoading(false)
+        return
+      }
+      imageUrl = uploaded
+    }
+
     const productData = {
       code: form.code,
       name: form.name,
@@ -171,7 +241,7 @@ export function ProductForm() {
       size: form.size,
       cost_price: parseFloat(form.cost_price) || 0,
       sale_price: parseFloat(form.sale_price),
-      image_url: form.image_url || null,
+      image_url: imageUrl,
       stock_quantity: parseInt(form.stock_quantity) || 0,
       min_stock_alert: parseInt(form.min_stock_alert) || 0,
       is_available: parseInt(form.stock_quantity) > 0,
@@ -205,6 +275,9 @@ export function ProductForm() {
     setFoundProduct(null)
     setRestockQuantity('')
     setRestockResult(null)
+    setImageFile(null)
+    if (imagePreview) URL.revokeObjectURL(imagePreview)
+    setImagePreview(null)
     setForm({
       code: '', name: '', description: '', size: '',
       cost_price: '', sale_price: '', image_url: '',
@@ -337,23 +410,70 @@ export function ProductForm() {
       {/* NEW PRODUCT / EDIT MODE */}
       {(mode === 'new' || mode === 'edit') && (
         <form onSubmit={handleSubmitNew} className="space-y-4">
-          {form.image_url && (
-            <Card padding="sm">
-              <img
-                src={form.image_url}
-                alt="Preview"
-                className="w-full h-48 object-cover rounded-xl"
-              />
-            </Card>
-          )}
-
           <Card>
-            <p className="text-sm font-medium text-text-light mb-2">Link da Foto</p>
-            <Input
-              placeholder="https://exemplo.com/foto.jpg"
-              value={form.image_url}
-              onChange={e => updateField('image_url', e.target.value)}
+            <p className="text-sm font-medium text-text-light mb-2">Foto do Produto</p>
+
+            {/* Hidden file inputs */}
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleImageSelected}
+              className="hidden"
             />
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageSelected}
+              className="hidden"
+            />
+
+            {/* Preview */}
+            {(imagePreview || form.image_url) && (
+              <div className="relative mb-3">
+                <img
+                  src={imagePreview || form.image_url}
+                  alt="Preview"
+                  className="w-full h-48 object-cover rounded-xl"
+                />
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="absolute top-2 right-2 p-1.5 bg-danger text-white rounded-full shadow-lg"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Upload buttons */}
+            {isUploading ? (
+              <div className="flex items-center justify-center gap-2 py-4 text-primary">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="text-sm">Enviando foto...</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-dashed border-primary/30 text-primary hover:bg-primary/5 transition-colors min-h-[44px]"
+                >
+                  <Camera className="w-5 h-5" />
+                  <span className="text-sm font-medium">Tirar Foto</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => galleryInputRef.current?.click()}
+                  className="flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-dashed border-primary/30 text-primary hover:bg-primary/5 transition-colors min-h-[44px]"
+                >
+                  <Image className="w-5 h-5" />
+                  <span className="text-sm font-medium">Galeria</span>
+                </button>
+              </div>
+            )}
           </Card>
 
           <Card>
