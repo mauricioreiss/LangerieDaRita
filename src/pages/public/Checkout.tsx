@@ -165,7 +165,7 @@ export function Checkout() {
         ? 'pix'
         : `installment_${installmentCount}x`
 
-      const { error } = await supabase.rpc('create_public_order', {
+      const { error } = await (supabase.rpc as Function)('create_public_order', {
         p_customer_name: name.trim(),
         p_customer_phone: phone.trim(),
         p_items: orderItems,
