@@ -195,11 +195,11 @@ export function Checkout() {
     showToast('Pedido registrado e enviado!', 'success')
     clearCart()
     setIsSaving(false)
-    navigate('/')
+    navigate('/catalogo')
   }
 
   if (items.length === 0) {
-    navigate('/')
+    navigate('/catalogo')
     return null
   }
 

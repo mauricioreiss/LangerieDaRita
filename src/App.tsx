@@ -23,8 +23,9 @@ import { Catalog } from '@/pages/public/Catalog'
 import { Cart } from '@/pages/public/Cart'
 import { Checkout } from '@/pages/public/Checkout'
 
-// Auth Pages
+// Other Pages
 import { Login } from '@/pages/Login'
+import { Home } from '@/pages/Home'
 
 function App() {
   const initialize = useAuthStore(state => state.initialize)
@@ -61,11 +62,18 @@ function App() {
           <Route path="configuracoes" element={<Settings />} />
         </Route>
 
+        {/* Home */}
+        <Route path="/" element={<Home />} />
+
         {/* Public Routes */}
-        <Route path="/" element={<PublicLayout />}>
+        <Route path="/catalogo" element={<PublicLayout />}>
           <Route index element={<Catalog />} />
-          <Route path="carrinho" element={<Cart />} />
-          <Route path="checkout" element={<Checkout />} />
+        </Route>
+        <Route path="/carrinho" element={<PublicLayout />}>
+          <Route index element={<Cart />} />
+        </Route>
+        <Route path="/checkout" element={<PublicLayout />}>
+          <Route index element={<Checkout />} />
         </Route>
 
         {/* Fallback */}

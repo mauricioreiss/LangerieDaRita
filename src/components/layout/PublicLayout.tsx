@@ -16,7 +16,7 @@ export function PublicLayout() {
       {/* Header */}
       <header className="bg-primary text-white px-4 py-3 sticky top-0 z-40">
         <div className="flex items-center justify-between max-w-lg mx-auto">
-          <button onClick={() => navigate('/')} className="flex items-center gap-2">
+          <button onClick={() => navigate('/catalogo')} className="flex items-center gap-2">
             <Store className="w-6 h-6" />
             <h1 className="text-lg font-bold">Lingerie da Rita</h1>
           </button>

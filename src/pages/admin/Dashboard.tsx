@@ -139,7 +139,7 @@ export function Dashboard() {
     const shareData = {
       title: 'Lingerie da Rita',
       text: 'Olá! Conheça a Lingerie da Rita 💕 Veja nosso catálogo:',
-      url: window.location.origin,
+      url: window.location.origin + '/catalogo',
     }
 
     if (navigator.share) {

@@ -16,7 +16,7 @@ export function Cart() {
       <div>
         <div className="flex items-center gap-3 mb-6">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/catalogo')}
             className="p-2 rounded-xl hover:bg-white min-h-[44px] min-w-[44px] flex items-center justify-center"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -28,7 +28,7 @@ export function Cart() {
           title="Carrinho vazio"
           description="Adicione produtos da nossa vitrine"
           action={
-            <Button onClick={() => navigate('/')}>
+            <Button onClick={() => navigate('/catalogo')}>
               Ver Produtos
             </Button>
           }
@@ -41,7 +41,7 @@ export function Cart() {
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/catalogo')}
           className="p-2 rounded-xl hover:bg-white min-h-[44px] min-w-[44px] flex items-center justify-center"
         >
           <ArrowLeft className="w-5 h-5" />
